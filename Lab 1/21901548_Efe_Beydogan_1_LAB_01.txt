@@ -1,0 +1,256 @@
+##
+## Part 3 - Finds the min, max, avg values of an array
+##
+##	v0 - syscall variable
+##	s0 - holds the array starting address
+## 	s1 - loop counter i
+## 	t3 - array length
+##	t4 - min element of array
+##	t5 - max element of array
+##	t6 - average of the values in the array
+
+
+#################################
+#					 	#
+#     	 data segment		#
+#						#
+#################################
+
+.data
+	array: .word 10, 2, 4, 23, 82, 23, 20, 10
+	arrsize: .word 8
+	position: .asciiz "Position (hex): "
+	value: .asciiz "Value (int): "
+	endl: .asciiz "\n"
+	commaSpace: .asciiz ", "
+	avg: .asciiz "Average: "
+	max: .asciiz "Max: "
+	min: .asciiz "Min: "
+	memAddr: .asciiz "Memory Address  Array Element\n"
+	pos: .asciiz "Position (hex)  Value (int)\n"
+	equals: .asciiz "==============  =============\n"
+	sixSpaces: .asciiz "      "
+
+#################################
+#					 	#
+#		text segment		#
+#						#
+#################################
+
+	.text
+	.globl __start
+	
+__start:
+	li $v0, 1
+	la $s0, array		# $s0 = array starting address
+
+	addi $s1, $0, 0		# i = 0
+	la $s2, arrsize		# get length address
+	lw $t3, 0($s2)		# $t3 = get length
+	
+	lw $t4, 0($s0)		# $t4 = first element in array (min)
+	lw $t5, 0($s0)		# $t5 = first element in array (max)
+	li $t6, 0		# $t6 will be used for keeping track of the sum
+	
+	# code for printing the layout
+	la $a0, memAddr
+	li $v0, 4
+	syscall
+	
+	la $a0, pos
+	syscall
+	
+	la $a0, equals
+	syscall
+	
+	# start the loop
+loop:
+	slt $t0, $s1, $t3	# is i < length
+	beq $t0, $0, done	# if not, then branch to done
+ 	
+ 	sll $t0, $s1, 2		# $t0 = i*4 (byte offset)
+ 	add $t0, $t0, $s0	# address of array[i]
+ 	
+# 	la $a0, position	# output prompt message on terminal
+#	li $v0,4		# syscall 4 prints the string
+#	syscall	
+ 	
+ 	li $v0, 34
+ 	add $a0, $0, $t0	# print the address in hexadecimal format
+ 	syscall 
+
+  	la $a0, sixSpaces	# print space
+ 	li $v0, 4
+ 	syscall
+ 	
+#	la $a0, value		# output prompt message on terminal
+#	li $v0,4		# syscall 4 prints the string
+#	syscall 	 	
+ 	 	 	 	
+ 	lw $a0, 0($t0)		# $a0 = array[i]
+ 	add $t6, $t6, $a0	# add the element to the sum
+ 	li $v0, 1
+ 	syscall			# display array[i]
+ 	
+ 	slt $t1, $a0, $t4	# if array[i] < min
+ 	bne $t1, 1, contMax	# if the value isn't smaller, than branch to check max
+ 	andi $t4, $a0, 0xffff	# set the new min value
+ 	j contMin
+contMax:
+	slt $t1, $t5, $a0	# if array[i] > max
+	bne $t1, 1, contMin	# if the value isn't bigger, than continue
+	andi $t5, $a0, 0xffff	# set new max value	
+contMin:	
+	la $a0, endl		# system call to print
+	li $v0,4		# out a newline
+	syscall
+ 	
+ 	addi $s1, $s1, 1	# i = i+1
+ 	j loop			# repeat
+ 	
+done:
+	la $a0, endl		# system call to print
+	li $v0,4		# out a newline
+	syscall
+	
+	div $t6, $t6, $t3	# calculate the average
+	
+	li $v0, 4	
+	la $a0, avg		# print the average
+	syscall
+	
+	li $v0, 1
+	addi $a0, $t6, 0
+	syscall
+	
+	la $a0, endl		# system call to print
+	li $v0,4		# out a newline
+	syscall
+	
+	li $v0, 4	
+	la $a0, max		# print the max value
+	syscall
+	
+	li $v0, 1
+	addi $a0, $t5, 0
+	syscall	
+	
+	la $a0, endl		# system call to print
+	li $v0,4		# out a newline
+	syscall
+	
+	li $v0, 4	
+	la $a0, min		# print the min value
+	syscall
+	
+	li $v0, 1
+	addi $a0, $t4, 0
+	syscall	
+
+##
+## Part 4 - Computes a mathematical formula
+##
+##	v0 - syscall variable
+##	s0 - holds b
+## 	s1 - holds c
+##	s2 - holds d
+## 	t0 - holds the outcome of the operation
+
+
+#################################
+#					 	#
+#     	 data segment		#
+#						#
+#################################
+
+.data
+	prompt1: .asciiz "Enter A: "
+	prompt2: .asciiz "\nEnter B: "
+	prompt3: .asciiz "\nEnter C: "
+	prompt4: .asciiz "\nEnter D: "
+	lastPrompt: .asciiz "\nThe result of the \"(A / B) + (C * D - A) % B\" operation is: "
+	
+#################################
+#					 	#
+#		text segment		#
+#						#
+#################################
+
+	.text
+	.globl __start
+	
+__start:
+	# Prompt the user to enter a
+	li $v0, 4
+	la $a0, prompt1
+	syscall 
+	
+	# Get a
+	li $v0, 5
+	syscall
+	
+	# Store a in $s0
+	move $s0, $v0
+	
+	# Prompt the user to enter b
+	li $v0, 4
+	la $a0, prompt2
+	syscall
+	
+	# Get b
+	li $v0, 5
+	syscall
+	
+	# Store b in $s1
+	move $s1, $v0
+	
+	# Prompt the user to enter c
+	li $v0, 4
+	la $a0, prompt3
+	syscall
+	
+	# Get c
+	li $v0, 5
+	syscall
+	
+	# Store c in $s2
+	move $s2, $v0
+	
+	# Prompt the user to enter d
+	li $v0, 4
+	la $a0, prompt4
+	syscall
+	
+	# Get d
+	li $v0, 5
+	syscall
+	
+	# Store d in $s3
+	move $s3, $v0
+	
+	# $t0 = (a / b)
+	div $t0, $s0, $s1
+	
+	# $t1 = (c * d)
+	mul $t1, $s2, $s3
+	
+	# $t1 = (c * d - a)
+	sub $t1, $t1, $s0
+	
+	# (c * d - a) / b
+	div $t1, $s1
+	
+	# $t1 = (c * d - a) % b
+	mfhi $t1
+	
+	# $t0 = (a / b) + (c * d - a) % b
+	add $t0, $t0, $t1
+	
+	# print the outcome of the operation
+	li $v0, 4
+	la $a0, lastPrompt
+	syscall 
+	
+	move $a0, $t0
+	li $v0, 1
+	syscall
